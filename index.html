@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Retire Radar</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero" aria-label="Retirement countdown dashboard">
+        <img class="hero-image" src="assets/retirement-hero.svg" alt="" />
+        <div class="hero-overlay"></div>
+
+        <div class="topbar">
+          <div class="brand">
+            <span class="brand-mark" aria-hidden="true">RR</span>
+            <span>Retire Radar</span>
+          </div>
+          <button class="icon-button" id="resetButton" type="button" title="Reset saved plan" aria-label="Reset saved plan">
+            <span aria-hidden="true">R</span>
+          </button>
+        </div>
+
+        <div class="hero-content">
+          <section class="countdown-panel">
+            <p class="eyebrow">Your freedom clock</p>
+            <h1 id="heroTitle">Retire sooner, with the number in sight.</h1>
+            <div class="countdown-grid" aria-live="polite">
+              <div class="time-box"><strong id="yearsLeft">--</strong><span>years</span></div>
+              <div class="time-box"><strong id="daysLeft">--</strong><span>days</span></div>
+              <div class="time-box"><strong id="hoursLeft">--</strong><span>hours</span></div>
+              <div class="time-box"><strong id="secondsLeft">--</strong><span>seconds</span></div>
+            </div>
+            <p class="retire-date" id="retireDateText">Add your details to start the countdown.</p>
+          </section>
+
+          <section class="summary-panel" aria-label="Estimated retirement income">
+            <div>
+              <p class="eyebrow">Estimated annual income</p>
+              <p class="income-number" id="annualIncome">$0</p>
+              <p class="income-subtitle" id="incomeSubtitle">Based on your savings, growth, pension, and Social Security estimate.</p>
+            </div>
+            <div class="meter" aria-hidden="true"><span id="meterFill"></span></div>
+            <div class="mini-stats">
+              <div><span>Projected nest egg</span><strong id="nestEgg">$0</strong></div>
+              <div><span>Monthly lifestyle</span><strong id="monthlyIncome">$0</strong></div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <form class="planner" id="plannerForm">
+          <div class="section-heading">
+            <p class="eyebrow">Plan inputs</p>
+            <h2>Tune the dream</h2>
+          </div>
+
+          <div class="input-grid">
+            <label>Your name<input id="name" name="name" type="text" autocomplete="given-name" placeholder="Future You" /></label>
+            <label>Current age<input id="currentAge" name="currentAge" type="number" min="16" max="90" step="1" /></label>
+            <label>Retirement age<input id="retirementAge" name="retirementAge" type="number" min="30" max="95" step="1" /></label>
+            <label>Current savings<input id="currentSavings" name="currentSavings" type="number" min="0" step="1000" /></label>
+            <label>Monthly contribution<input id="monthlyContribution" name="monthlyContribution" type="number" min="0" step="50" /></label>
+            <label>Expected yearly return<input id="annualReturn" name="annualReturn" type="number" min="0" max="18" step="0.1" /></label>
+            <label>Withdrawal rate<input id="withdrawalRate" name="withdrawalRate" type="number" min="1" max="10" step="0.1" /></label>
+            <label>Pension / Social Security per year<input id="fixedIncome" name="fixedIncome" type="number" min="0" step="500" /></label>
+          </div>
+
+          <div class="actions">
+            <button class="primary-button" type="button" id="shareButton">Copy Share Card</button>
+            <button class="secondary-button" type="button" id="sampleButton">Use Viral Example</button>
+          </div>
+        </form>
+
+        <aside class="insights" aria-label="Retirement insights">
+          <div class="section-heading">
+            <p class="eyebrow">Reality check</p>
+            <h2 id="readinessTitle">Your plan is waiting.</h2>
+          </div>
+          <div class="insight-list">
+            <article><span class="chip">Target</span><p id="targetInsight">Enter your current age and retirement age to reveal your retirement date.</p></article>
+            <article><span class="chip">Momentum</span><p id="momentumInsight">Monthly contributions and time are the biggest levers this prototype tracks.</p></article>
+            <article><span class="chip">Data</span><p>Your info is saved only in this browser for now. A production version should use secure accounts and encrypted storage.</p></article>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">Copied.</div>
+    <script src="app.js"></script>
+  </body>
+</html>
