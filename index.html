@@ -58,10 +58,10 @@
           <div class="input-grid">
             <label>Your name<input id="name" name="name" type="text" autocomplete="given-name" placeholder="Future You" /></label>
             <label>Birth date<input id="birthDate" name="birthDate" type="date" /></label>
-            <label>Retirement age<input id="retirementAge" name="retirementAge" type="number" min="30" max="95" step="1" /></label>
-            <label>Current savings<input id="currentSavings" name="currentSavings" type="number" min="0" step="1000" /></label>
-            <label>Monthly contribution<input id="monthlyContribution" name="monthlyContribution" type="number" min="0" step="50" /></label>
-            <label>Desired yearly spending<input id="desiredSpending" name="desiredSpending" type="number" min="0" step="1000" /></label>
+            <label>Retirement age<input id="retirementAge" name="retirementAge" type="number" min="30" max="95" step="1" placeholder="62" /></label>
+            <label>Current savings<input id="currentSavings" name="currentSavings" type="number" min="0" step="1000" placeholder="25000" /></label>
+            <label>Monthly contribution<input id="monthlyContribution" name="monthlyContribution" type="number" min="0" step="50" placeholder="500" /></label>
+            <label>Desired yearly spending<input id="desiredSpending" name="desiredSpending" type="number" min="0" step="1000" placeholder="65000" /></label>
           </div>
 
           <details class="advanced-panel">
@@ -70,15 +70,15 @@
               <label>Expected yearly return<input id="annualReturn" name="annualReturn" type="number" min="0" max="18" step="0.1" /></label>
               <label>Inflation<input id="inflationRate" name="inflationRate" type="number" min="0" max="12" step="0.1" /></label>
               <label>Withdrawal rate<input id="withdrawalRate" name="withdrawalRate" type="number" min="1" max="10" step="0.1" /></label>
-              <label>Pension / Social Security per year<input id="fixedIncome" name="fixedIncome" type="number" min="0" step="500" /></label>
+              <label>Pension / Social Security per year<input id="fixedIncome" name="fixedIncome" type="number" min="0" step="500" placeholder="0" /></label>
             </div>
           </details>
 
           <div class="actions">
             <button class="primary-button" type="button" id="shareButton">Copy Share Card</button>
-            <button class="secondary-button" type="button" id="sampleButton">Use FIRE Example</button>
+            <button class="secondary-button" type="button" id="sampleButton">Try Demo Plan</button>
           </div>
-          <p class="fine-print">Educational estimate only. Retire Radar is not financial advice.</p>
+          <p class="fine-print">Educational estimate only. Retire Radar is not financial advice. Your signed-in plan saves after you edit a real input.</p>
         </form>
 
         <aside class="insights" aria-label="Retirement insights">
