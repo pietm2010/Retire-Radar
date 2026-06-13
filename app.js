@@ -85,10 +85,6 @@ function saveState() {
   scheduleCloudSave();
 }
 
-function hasRequiredPlan(plan = state) {
-  return Boolean(plan.birthDate && Number(plan.retirementAge));
-}
-
 function hasMeaningfulPlan(plan = state) {
   return fields.some((field) => {
     if (["annualReturn", "inflationRate", "withdrawalRate"].includes(field)) return false;
@@ -390,6 +386,12 @@ async function saveCloudPlan() {
   updateAccountStatus(error ? `Cloud save issue: ${error.message}` : `Signed in as ${currentUser.email}. Saved just now.`);
 }
 
+async function clearCloudPlan() {
+  if (!db || !currentUser) return;
+  const { error } = await db.from(TABLE_NAME).delete().eq("user_id", currentUser.id);
+  updateAccountStatus(error ? `Cloud reset issue: ${error.message}` : `Signed in as ${currentUser.email}. Cloud plan cleared.`);
+}
+
 async function loadCloudPlan() {
   if (!db || !currentUser) return;
   const { data, error } = await db.from(TABLE_NAME).select("plan").eq("user_id", currentUser.id).maybeSingle();
@@ -420,12 +422,12 @@ async function loadCloudPlan() {
 form.addEventListener("input", syncFromInputs);
 document.querySelector("#shareButton").addEventListener("click", copyShareCard);
 document.querySelector("#sampleButton").addEventListener("click", useSample);
-document.querySelector("#resetButton").addEventListener("click", () => {
+document.querySelector("#resetButton").addEventListener("click", async () => {
   localStorage.removeItem(STORAGE_KEY);
   state = { ...emptyPlan };
   updateForm();
   updateView();
-  updateAccountStatus(currentUser ? `Signed in as ${currentUser.email}. Plan reset locally.` : undefined);
+  await clearCloudPlan();
   showToast("Plan reset.");
 });
 document.querySelector("#signUpButton").addEventListener("click", signUp);
