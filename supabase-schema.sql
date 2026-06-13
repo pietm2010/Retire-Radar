@@ -24,3 +24,9 @@ create policy "Users can update their own retirement plan"
   for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+drop policy if exists "Users can delete their own retirement plan" on public.retirement_plans;
+create policy "Users can delete their own retirement plan"
+  on public.retirement_plans
+  for delete
+  using (auth.uid() = user_id);
