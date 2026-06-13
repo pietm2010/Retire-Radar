@@ -1,4 +1,4 @@
 window.RETIRE_RADAR_SUPABASE = {
-  url: "",
-  anonKey: "",
+  url: "https://rcgeheaaxtkesfjfmdky.supabase.co",
+  anonKey: "sb_publishable_JeizVtW5bopMazsTaZcXlQ_kSneiuZK",
 };
