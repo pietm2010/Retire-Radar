@@ -1,5 +1,6 @@
 const STORAGE_KEY = "retire-radar-plan";
 const TABLE_NAME = "retirement_plans";
+const APP_URL = "https://pietm2010.github.io/Retire-Radar/";
 
 const defaults = {
   name: "Future You",
@@ -267,7 +268,11 @@ async function signUp() {
   if (!db) return showToast("Add Supabase credentials first.");
   const email = document.querySelector("#email").value;
   const password = document.querySelector("#password").value;
-  const { data, error } = await db.auth.signUp({ email, password });
+  const { data, error } = await db.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: APP_URL },
+  });
   if (error) return showToast(error.message);
   currentUser = data?.user || currentUser;
   updateAccountStatus("Check your email to confirm the account, then sign in.");
