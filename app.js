@@ -2,17 +2,39 @@ const STORAGE_KEY = "retire-radar-plan";
 const TABLE_NAME = "retirement_plans";
 const APP_URL = "https://pietm2010.github.io/Retire-Radar/";
 
-const defaults = {
+const emptyPlan = {
+  name: "",
+  birthDate: "",
+  retirementAge: "",
+  currentSavings: "",
+  monthlyContribution: "",
+  desiredSpending: "",
+  annualReturn: 6,
+  inflationRate: 2.5,
+  withdrawalRate: 4,
+  fixedIncome: "",
+};
+
+const demoPlan = {
+  name: "Avery",
+  birthDate: "1992-04-18",
+  retirementAge: 55,
+  currentSavings: 220000,
+  monthlyContribution: 1450,
+  desiredSpending: 78000,
+  annualReturn: 6.5,
+  inflationRate: 2.5,
+  withdrawalRate: 4,
+  fixedIncome: 18000,
+};
+
+const legacyDemoPlan = {
   name: "Future You",
   birthDate: "1987-06-12",
   retirementAge: 62,
   currentSavings: 145000,
   monthlyContribution: 850,
   desiredSpending: 70000,
-  annualReturn: 6,
-  inflationRate: 2.5,
-  withdrawalRate: 4,
-  fixedIncome: 22000,
 };
 
 const fields = [
@@ -37,17 +59,47 @@ let currentUser = null;
 let state = loadState();
 let saveTimer;
 
+function looksLikeLegacyDemo(plan = {}) {
+  return fields.every((field) => {
+    if (!(field in legacyDemoPlan)) return true;
+    return String(plan[field]) === String(legacyDemoPlan[field]);
+  });
+}
+
+function normalizePlan(plan = {}) {
+  if (looksLikeLegacyDemo(plan)) return { ...emptyPlan };
+  return { ...emptyPlan, ...plan };
+}
+
 function loadState() {
   try {
-    return { ...defaults, ...JSON.parse(localStorage.getItem(STORAGE_KEY)) };
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return normalizePlan(stored || {});
   } catch {
-    return { ...defaults };
+    return { ...emptyPlan };
   }
 }
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   scheduleCloudSave();
+}
+
+function hasRequiredPlan(plan = state) {
+  return Boolean(plan.birthDate && Number(plan.retirementAge));
+}
+
+function hasMeaningfulPlan(plan = state) {
+  return fields.some((field) => {
+    if (["annualReturn", "inflationRate", "withdrawalRate"].includes(field)) return false;
+    return String(plan[field] ?? "").trim() !== "";
+  });
+}
+
+function numberValue(value, fallback = 0) {
+  if (value === "" || value === null || value === undefined) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function money(value) {
@@ -64,19 +116,23 @@ function whole(value) {
   );
 }
 
-function getNumber(id) {
-  const value = Number(document.querySelector(`#${id}`).value);
-  return Number.isFinite(value) ? value : 0;
+function getNumber(id, fallback = "") {
+  const input = document.querySelector(`#${id}`);
+  if (!input.value) return fallback;
+  const value = Number(input.value);
+  return Number.isFinite(value) ? value : fallback;
 }
 
 function parseBirthDate() {
+  if (!state.birthDate) return null;
   const date = new Date(`${state.birthDate}T12:00:00`);
-  return Number.isNaN(date.getTime()) ? new Date(`${defaults.birthDate}T12:00:00`) : date;
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function currentAge() {
   const today = new Date();
   const birth = parseBirthDate();
+  if (!birth) return null;
   let age = today.getFullYear() - birth.getFullYear();
   const birthdayThisYear = new Date(today.getFullYear(), birth.getMonth(), birth.getDate());
   if (today < birthdayThisYear) age -= 1;
@@ -85,8 +141,9 @@ function currentAge() {
 
 function retirementDate() {
   const birth = parseBirthDate();
+  if (!birth || !Number(state.retirementAge)) return null;
   const date = new Date(birth);
-  date.setFullYear(birth.getFullYear() + Math.max(0, state.retirementAge));
+  date.setFullYear(birth.getFullYear() + Math.max(0, numberValue(state.retirementAge)));
   date.setHours(17, 0, 0, 0);
   return date;
 }
@@ -97,11 +154,11 @@ function monthsUntilRetirement(target) {
 }
 
 function projectNestEgg(months) {
-  const monthlyRate = Math.max(0, state.annualReturn) / 100 / 12;
-  let balance = Math.max(0, state.currentSavings);
+  const monthlyRate = Math.max(0, numberValue(state.annualReturn, 6)) / 100 / 12;
+  let balance = Math.max(0, numberValue(state.currentSavings));
 
   for (let month = 0; month < months; month += 1) {
-    balance = balance * (1 + monthlyRate) + Math.max(0, state.monthlyContribution);
+    balance = balance * (1 + monthlyRate) + Math.max(0, numberValue(state.monthlyContribution));
   }
 
   return balance;
@@ -109,6 +166,8 @@ function projectNestEgg(months) {
 
 function calculatePlan() {
   const target = retirementDate();
+  if (!target) return { isReady: false };
+
   const now = new Date();
   const diffMs = Math.max(0, target - now);
   const totalSeconds = Math.floor(diffMs / 1000);
@@ -119,13 +178,14 @@ function calculatePlan() {
   const months = monthsUntilRetirement(target);
   const yearsToRetire = months / 12;
   const nestEgg = projectNestEgg(months);
-  const portfolioIncome = nestEgg * (Math.max(0, state.withdrawalRate) / 100);
-  const annualIncome = portfolioIncome + Math.max(0, state.fixedIncome);
-  const inflatedSpending = Math.max(0, state.desiredSpending) * Math.pow(1 + Math.max(0, state.inflationRate) / 100, yearsToRetire);
+  const portfolioIncome = nestEgg * (Math.max(0, numberValue(state.withdrawalRate, 4)) / 100);
+  const annualIncome = portfolioIncome + Math.max(0, numberValue(state.fixedIncome));
+  const inflatedSpending = Math.max(0, numberValue(state.desiredSpending)) * Math.pow(1 + Math.max(0, numberValue(state.inflationRate, 2.5)) / 100, yearsToRetire);
   const incomeGap = annualIncome - inflatedSpending;
   const readiness = inflatedSpending > 0 ? Math.min(140, Math.round((annualIncome / inflatedSpending) * 100)) : 0;
 
   return {
+    isReady: true,
     target,
     years,
     days,
@@ -144,12 +204,37 @@ function calculatePlan() {
 
 function updateForm() {
   fields.forEach((id) => {
-    document.querySelector(`#${id}`).value = state[id];
+    document.querySelector(`#${id}`).value = state[id] ?? "";
   });
+}
+
+function updateEmptyView() {
+  document.querySelector("#heroTitle").textContent = "Build your real retirement countdown.";
+  document.querySelector("#yearsLeft").textContent = "--";
+  document.querySelector("#daysLeft").textContent = "--";
+  document.querySelector("#hoursLeft").textContent = "--";
+  document.querySelector("#secondsLeft").textContent = "--";
+  document.querySelector("#retireDateText").textContent = "Add your birth date and target retirement age to start.";
+  document.querySelector("#annualIncome").textContent = "$0";
+  document.querySelector("#monthlyIncome").textContent = "$0";
+  document.querySelector("#nestEgg").textContent = "$0";
+  document.querySelector("#incomeSubtitle").textContent = "Your estimate will appear once your plan is started.";
+  document.querySelector("#meterFill").style.width = "0%";
+  document.querySelector("#readinessTitle").textContent = "Your plan is waiting.";
+  document.querySelector("#targetInsight").textContent = "Start with birth date, retirement age, savings, contribution, and spending target.";
+  document.querySelector("#gapInsight").textContent = "No shortfall or surplus yet. Enter your numbers and Retire Radar will calculate it.";
+  document.querySelector("#shareBadge").textContent = "Start here";
+  document.querySelector("#shareHeadline").textContent = "No fake plan";
+  document.querySelector("#shareText").textContent = "Your real retirement result will replace this demo-free starting point.";
 }
 
 function updateView() {
   const plan = calculatePlan();
+  if (!plan.isReady) {
+    updateEmptyView();
+    return;
+  }
+
   const name = state.name?.trim() || "Future You";
   const dateLabel = plan.target.toLocaleDateString("en-US", {
     weekday: "long",
@@ -188,15 +273,15 @@ function updateView() {
 
 function syncFromInputs() {
   state = {
-    name: document.querySelector("#name").value || defaults.name,
-    birthDate: document.querySelector("#birthDate").value || defaults.birthDate,
+    name: document.querySelector("#name").value,
+    birthDate: document.querySelector("#birthDate").value,
     retirementAge: getNumber("retirementAge"),
     currentSavings: getNumber("currentSavings"),
     monthlyContribution: getNumber("monthlyContribution"),
     desiredSpending: getNumber("desiredSpending"),
-    annualReturn: getNumber("annualReturn"),
-    inflationRate: getNumber("inflationRate"),
-    withdrawalRate: getNumber("withdrawalRate"),
+    annualReturn: getNumber("annualReturn", 6),
+    inflationRate: getNumber("inflationRate", 2.5),
+    withdrawalRate: getNumber("withdrawalRate", 4),
     fixedIncome: getNumber("fixedIncome"),
   };
   saveState();
@@ -211,6 +296,8 @@ function showToast(message) {
 
 async function copyShareCard() {
   const plan = calculatePlan();
+  if (!plan.isReady) return showToast("Add your plan first.");
+
   const name = state.name?.trim() || "Future Me";
   const text = [
     `${name}'s Retire Radar`,
@@ -231,18 +318,7 @@ async function copyShareCard() {
 }
 
 function useSample() {
-  state = {
-    name: "Avery",
-    birthDate: "1992-04-18",
-    retirementAge: 55,
-    currentSavings: 220000,
-    monthlyContribution: 1450,
-    desiredSpending: 78000,
-    annualReturn: 6.5,
-    inflationRate: 2.5,
-    withdrawalRate: 4,
-    fixedIncome: 18000,
-  };
+  state = { ...demoPlan };
   saveState();
   updateForm();
   updateView();
@@ -251,16 +327,18 @@ function useSample() {
 function updateAccountStatus(message) {
   const status = document.querySelector("#accountStatus");
   status.textContent = message || (hasSupabaseConfig ? "Cloud save is ready." : "Browser-only mode is on until Supabase is configured.");
-  document.querySelector("#dataInsight").textContent = hasSupabaseConfig
-    ? "Sign in to save this plan to your private Supabase profile."
-    : "Your info is saved in this browser. Add Supabase credentials to enable accounts and cloud saving.";
+  document.querySelector("#dataInsight").textContent = currentUser
+    ? "Signed in. Your next real plan edit will save to Supabase."
+    : hasSupabaseConfig
+      ? "Sign in to save this plan to your private Supabase profile."
+      : "Your info is saved in this browser. Add Supabase credentials to enable accounts and cloud saving.";
 }
 
 async function getSessionUser() {
   if (!db) return;
   const { data } = await db.auth.getUser();
   currentUser = data?.user || null;
-  updateAccountStatus(currentUser ? `Signed in as ${currentUser.email}.` : "Cloud save is ready. Sign in to sync your plan.");
+  updateAccountStatus(currentUser ? `Signed in as ${currentUser.email}. Ready to save your real plan.` : "Cloud save is ready. Sign in to sync your plan.");
   if (currentUser) await loadCloudPlan();
 }
 
@@ -285,9 +363,8 @@ async function signIn() {
   const { data, error } = await db.auth.signInWithPassword({ email, password });
   if (error) return showToast(error.message);
   currentUser = data.user;
-  updateAccountStatus(`Signed in as ${currentUser.email}.`);
+  updateAccountStatus(`Signed in as ${currentUser.email}. Loading your plan...`);
   await loadCloudPlan();
-  await saveCloudPlan();
 }
 
 async function signOut() {
@@ -303,27 +380,41 @@ function scheduleCloudSave() {
 }
 
 async function saveCloudPlan() {
-  if (!db || !currentUser) return;
+  if (!db || !currentUser || !hasMeaningfulPlan()) return;
   const payload = {
     user_id: currentUser.id,
     plan: state,
     updated_at: new Date().toISOString(),
   };
   const { error } = await db.from(TABLE_NAME).upsert(payload, { onConflict: "user_id" });
-  if (error) updateAccountStatus(`Cloud save issue: ${error.message}`);
+  updateAccountStatus(error ? `Cloud save issue: ${error.message}` : `Signed in as ${currentUser.email}. Saved just now.`);
 }
 
 async function loadCloudPlan() {
   if (!db || !currentUser) return;
   const { data, error } = await db.from(TABLE_NAME).select("plan").eq("user_id", currentUser.id).maybeSingle();
   if (error) return updateAccountStatus(`Cloud load issue: ${error.message}`);
-  if (data?.plan) {
-    state = { ...defaults, ...data.plan };
+
+  if (data?.plan && hasMeaningfulPlan(data.plan) && !looksLikeLegacyDemo(data.plan)) {
+    state = normalizePlan(data.plan);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     updateForm();
     updateView();
+    updateAccountStatus(`Signed in as ${currentUser.email}. Cloud plan loaded.`);
     showToast("Cloud plan loaded.");
+    return;
   }
+
+  if (looksLikeLegacyDemo(data?.plan)) {
+    state = { ...emptyPlan };
+    localStorage.removeItem(STORAGE_KEY);
+    updateForm();
+    updateView();
+    updateAccountStatus(`Signed in as ${currentUser.email}. Old demo data ignored. Add your real numbers.`);
+    return;
+  }
+
+  updateAccountStatus(`Signed in as ${currentUser.email}. No saved plan yet. Add your real numbers.`);
 }
 
 form.addEventListener("input", syncFromInputs);
@@ -331,10 +422,10 @@ document.querySelector("#shareButton").addEventListener("click", copyShareCard);
 document.querySelector("#sampleButton").addEventListener("click", useSample);
 document.querySelector("#resetButton").addEventListener("click", () => {
   localStorage.removeItem(STORAGE_KEY);
-  state = { ...defaults };
+  state = { ...emptyPlan };
   updateForm();
   updateView();
-  saveCloudPlan();
+  updateAccountStatus(currentUser ? `Signed in as ${currentUser.email}. Plan reset locally.` : undefined);
   showToast("Plan reset.");
 });
 document.querySelector("#signUpButton").addEventListener("click", signUp);
